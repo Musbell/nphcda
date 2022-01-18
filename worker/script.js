@@ -656,39 +656,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = __webpack_require__(/*! @prisma/client */ "./node_modules/@prisma/client/index.js");
 const prisma = new client_1.PrismaClient();
 addEventListener('fetch', (event) => {
-    event.respondWith(handleEvent(event));
+    // event.respondWith(handleEvent(event))
+    try {
+        const request = event.request;
+        return event.respondWith(handleRequest(event));
+    }
+    catch ({ message }) {
+        return event.respondWith(new Response("Error thrown " + message));
+    }
 });
-async function handleEvent(event) {
-    const { request, response } = event;
+const handleEvent = async (event) => {
+    const { request } = event;
     const init = {
         headers: {
             "content-type": "application/json",
         },
     };
-    //   const response = await prisma.facilities.findMany({
-    //     where: {
-    //         cce_available: true,
-    //         latitude: {
-    //             not: undefined
-    //         },
-    //         longitude: {
-    //             not: undefined
-    //         },
-    //         state_code: {
-    //             not: undefined
-    //         },
-    //         lga_code: {
-    //             not: undefined
-    //         }
-    //     },
-    //     select: {
-    //         state_code: true,
-    //         lga_code: true,
-    //         category: true,
-    //         latitude: true,
-    //         longitude: true
-    //     },
-    //     })
     const { searchParams } = new URL(request.url);
     let lat = searchParams.get('lat');
     let lng = searchParams.get('lng');
@@ -699,7 +682,6 @@ async function handleEvent(event) {
     let facility_type = searchParams.get('facility_type');
     if (!lng || !lat)
         return new Response(JSON.stringify({ error: 'Lat and Lng is required' }), init);
-    console.log('passed here');
     const conditions = [];
     if (state_code)
         conditions.push(`state_code='${state_code}'`);
@@ -719,15 +701,31 @@ async function handleEvent(event) {
         whereStatement = `WHERE ${filteredConditions.join(' AND ')}`;
     }
     const result = await prisma.$queryRawUnsafe(`
-      select *, 
-      ST_DistanceSphere(ST_MakePoint(${lng}, ${lat}), ST_MakePoint(longitude, latitude)) AS distance
-      FROM public.facilities
-       ${whereStatement}
-      ORDER BY distance ASC
-      OFFSET ${offset}
-      LIMIT 20;`);
+    select *, 
+    ST_DistanceSphere(ST_MakePoint(${lng}, ${lat}), ST_MakePoint(longitude, latitude)) AS distance
+    FROM public.facilities
+     ${whereStatement}
+    ORDER BY distance ASC
+    OFFSET ${offset}
+    LIMIT 100;`);
     return new Response(JSON.stringify(result), init);
-}
+};
+const handleRequest = async (event) => {
+    const request = event.request;
+    const cacheUrl = new URL(request.url);
+    const cacheKey = new Request(cacheUrl.toString(), request);
+    const cache = caches.default;
+    let response = await cache.match(cacheKey);
+    if (!response) {
+        response = await handleEvent(event);
+        response = new Response(response.body, response);
+        response.headers.set("Access-Control-Allow-Origin", '*');
+        response.headers.append("Vary", "Origin");
+        response.headers.append("Cache-Control", "s-maxage=10");
+        event.waitUntil(cache.put(cacheKey, response.clone()));
+    }
+    return response;
+};
 
 
 /***/ })
