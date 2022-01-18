@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model facilities {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  latitude          Decimal  @db.Decimal(11, 9)
+  longitude         Decimal  @db.Decimal(11, 9)
+  contact_phone     String?  @db.VarChar(36)
+  contact_name      String?  @db.VarChar(29)
+  ri_service_status Boolean?
+  cce_quantity      Int?
+  cce_available     Boolean?
+  cce_lastupdated   String?  @db.VarChar(11)
+  category          String?  @db.VarChar(32)
+  global_id         String   @db.VarChar(36)
+  name              String   @db.VarChar(100)
+  alternate_name    String?  @db.VarChar(70)
+  functional_status String   @db.VarChar(44)
+  type              String   @db.VarChar(9)
+  ownership         String   @db.VarChar(46)
+  ward_code         String   @db.VarChar(10)
+  accessibility     String?  @db.VarChar(16)
+  source            String   @db.VarChar(21)
+  ward_name         String   @db.VarChar(46)
+  lga_code          String   @db.VarChar(22)
+  lga_name          String   @db.VarChar(22)
+  state_code        String   @db.VarChar(2)
+  state_name        String   @db.VarChar(11)
+}
+
+model spatial_ref_sys {
+  srid      Int     @id
+  auth_name String? @db.VarChar(256)
+  auth_srid Int?
+  srtext    String? @db.VarChar(2048)
+  proj4text String? @db.VarChar(2048)
+}
