@@ -41,7 +41,7 @@ if (vaccineType) {
 if (vaccineType === 'covid') conditions.push("cce_available=True");
 else conditions.push("cce_available is not True");
 } 
-if (facility_type) conditions.push(`category='${facility_type}'`);
+if (facility_type) conditions.push(`ownership='${facility_type}'`);
 
 let whereStatement = '';
 const filteredConditions = conditions.filter(c => c);
